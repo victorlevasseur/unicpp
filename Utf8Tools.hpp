@@ -3,10 +3,23 @@
 
 #include "Exceptions.hpp"
 
+/**
+ * \file Contains some tools to manage Utf8 directly on std::string.
+ * Used internally by unicpp::string.
+ */
+
 namespace unicpp
 {
 
+const char16_t LEAD_SURROGATE_MIN  = 0xd800u;
+const char16_t LEAD_SURROGATE_MAX  = 0xdbffu;
+const char16_t TRAIL_SURROGATE_MIN = 0xdc00u;
+const char16_t TRAIL_SURROGATE_MAX = 0xdfffu;
+
+const char32_t CODE_POINT_MAX = 0x0010ffffu;
+
 bool is_valid_utf8_octet(unsigned char octet);
+bool is_valid_codepoint(char32_t codepoint);
 
 /**
     * Convert a utf32 codeunit (representing a single codepoint) to 
@@ -15,8 +28,11 @@ bool is_valid_utf8_octet(unsigned char octet);
     * *(OutputIterator) must accept a char assignment.
     */
 template<typename OutputIterator>
-void utf32_to_utf8(char32_t codepoint, OutputIterator output)
+void codepoint_to_utf8(char32_t codepoint, OutputIterator output)
 {
+    if(!is_valid_codepoint(codepoint))
+        throw invalid_codepoint_exception("This codepoint is invalid: " + std::to_string(codepoint));
+
     if(codepoint <= 0x0000007F) 
     {
         // Between 00000000 00000000 00000000 00000000 and 00000000 00000000 00000000 01111111
@@ -56,7 +72,7 @@ void utf32_to_utf8(char32_t codepoint, OutputIterator output)
     else
     {
         // Don't know how to encode this.
-        throw not_encodable_codepoint_exception("Can't encode this codepoint: " + std::to_string(static_cast<uint32_t>(codepoint)));
+        throw invalid_codepoint_exception("Can't encode this codepoint: " + std::to_string(static_cast<uint32_t>(codepoint)));
     }
 }
 
@@ -72,22 +88,52 @@ void utf32_to_utf8(InputIterator begin, InputIterator end, OutputIterator output
 {
     for(auto it = begin; it != end; ++it)
     {
-        utf32_to_utf8<OutputIterator>(*it, output);
+        codepoint_to_utf8<OutputIterator>(*it, output);
     }
 }
 
-template<typename OutputIterator>
-void utf16_to_utf8(char16_t codepoint, OutputIterator output)
-{
+bool is_utf16_lead_surrogate(char16_t codeunit);
 
+bool is_utf16_trail_surrogate(char16_t codeunit);
+
+bool is_utf16_surrogate(char16_t codeunit);
+
+template<typename InputIterator, typename OutputIterator>
+void utf16_character_to_utf8(InputIterator & it, InputIterator end, OutputIterator output)
+{
+    if(it == end)
+        throw bad_utf16_sequence_exception("Already at the end of the range!");
+
+    char16_t codeunit = *(it++);
+    if(is_utf16_surrogate(codeunit))
+    {
+        if(is_utf16_trail_surrogate(codeunit))
+            throw bad_utf16_sequence_exception("Found a trail surrogate without previous lead surrogate!");
+        
+        // This is surely a lead surrogate
+        if(it == end)
+            throw bad_utf16_sequence_exception("End of range before an expected trail surrogate");
+
+        char16_t trail = *(it++);
+        if(!is_utf16_trail_surrogate(trail))
+            throw bad_utf16_sequence_exception("Found a character that is not a surrogate after a lead surrogate!");
+        
+        char32_t codepoint = ((static_cast<char32_t>(codeunit & 0x3FF) << 10) | trail & 0x3FF) + 0x10000;
+        codepoint_to_utf8(codepoint, output);
+    }
+    else
+    {
+        char32_t codepoint = static_cast<char32_t>(codeunit);
+        codepoint_to_utf8(codepoint, output);
+    }
 }
 
 template<typename InputIterator, typename OutputIterator>
 void utf16_to_utf8(InputIterator begin, InputIterator end, OutputIterator output)
 {
-    for(auto it = begin; it != end; ++it)
+    for(auto it = begin; it != end; )
     {
-        utf16_to_utf8<OutputIterator>(*it, output);
+        utf16_character_to_utf8<InputIterator, OutputIterator>(it, end, output);
     }
 }
 
@@ -154,6 +200,9 @@ char32_t iterate_next(InputIterator& it, InputIterator end)
         codepoint |= buffer[i] & 0x3F;
     }
 
+    if(!is_valid_codepoint(codepoint))
+        throw invalid_codepoint_exception("This is an invalid codepoint: " + std::to_string(codepoint));
+
     return codepoint;
 }
 
@@ -164,11 +213,36 @@ char32_t get_next(InputIterator it, InputIterator end)
 }
 
 template<typename InputIterator, typename OutputIterator>
-bool utf8_to_utf32(InputIterator begin, InputIterator end, OutputIterator output)
+void utf8_to_utf32(InputIterator begin, InputIterator end, OutputIterator output)
 {
     for(auto it = begin; it != end; )
     {
         output++ = iterate_next(it, end);
+    }
+}
+
+template<typename OutputIterator>
+void codepoint_to_utf16(char32_t codepoint, OutputIterator output)
+{
+    if(codepoint < 0x10000)
+    {
+        output++ = static_cast<char16_t>(codepoint);
+    }
+    else
+    {
+        char32_t u = codepoint - 0x10000;
+        output++ = 0xD800 | (static_cast<char16_t>(u >> 10) & 0x3FF);
+        output++ = 0xDC00 | (static_cast<char16_t>(u) & 0x3FF);
+    }
+}
+
+template<typename InputIterator, typename OutputIterator>
+void utf8_to_utf16(InputIterator begin, InputIterator end, OutputIterator output)
+{
+    for(auto it = begin; it != end; )
+    {
+        char32_t codepoint = iterate_next(it, end);
+        codepoint_to_utf16(codepoint, output);
     }
 }
 
@@ -180,13 +254,7 @@ bool is_valid_utf8(InputIterator begin, InputIterator end)
     {
         try
         {
-            std::size_t sequence_length = iterate_next_sequence(it, end, buffer);
-
-            for(std::size_t i = 0; i < sequence_length; ++i)
-            {
-                if(!is_valid_utf8_octet(buffer[i]))
-                    return false;
-            }
+            iterate_next(it, end);
         }
         catch(...) // Some kind of exception was thrown when interpreting the UTF-8, so it's invalid
         {

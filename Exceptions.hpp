@@ -27,11 +27,11 @@ public:
     explicit bad_utf16_sequence_exception (const char* what_arg) : std::runtime_error(what_arg) {}
 };
 
-class not_encodable_codepoint_exception : public std::runtime_error
+class invalid_codepoint_exception : public std::runtime_error
 {
 public: 
-    explicit not_encodable_codepoint_exception (const std::string& what_arg) : std::runtime_error(what_arg) {}
-    explicit not_encodable_codepoint_exception (const char* what_arg) : std::runtime_error(what_arg) {}
+    explicit invalid_codepoint_exception (const std::string& what_arg) : std::runtime_error(what_arg) {}
+    explicit invalid_codepoint_exception (const char* what_arg) : std::runtime_error(what_arg) {}
 };
 
 }

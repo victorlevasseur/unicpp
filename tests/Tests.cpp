@@ -31,7 +31,18 @@ TEST_CASE("Conversion from/to UTF32")
     REQUIRE(unicpp::string(utf8str.utf32_str()).std_str() == u8"Elegant, 时尚, élégant, 🞊");
 
     // Not encodable codepoint
-    REQUIRE_THROWS_AS(unicpp::string unencStr(U"Bad codepoint: \x0023F1AF <-- here!"), unicpp::not_encodable_codepoint_exception);
+    REQUIRE_THROWS_AS(unicpp::string unencStr(U"Bad codepoint: \x0023F1AF <-- here!"), unicpp::invalid_codepoint_exception);
+}
+
+TEST_CASE("Conversion from/to UTF16")
+{
+    unicpp::string utf8str(u"Elegant, 时尚, élégant, 🞊");
+    REQUIRE(utf8str.std_str() == u8"Elegant, 时尚, élégant, 🞊");
+
+    REQUIRE(utf8str.utf16_str() == u"Elegant, 时尚, élégant, 🞊");
+    REQUIRE(unicpp::string(utf8str.utf16_str()).std_str() == u8"Elegant, 时尚, élégant, 🞊");
+
+    // TODO: Test for surrogates
 }
 
 unicpp::string testing_strings[] = {
@@ -55,6 +66,10 @@ unicpp::string testing_strings[] = {
     u8"This contains an \xEC\xAC\xAF\xAD character",
     // Contains a 3 three byte sequence but with one octet missing because the string is not long enough
     u8"This contains an \xEC\xAC",
+    // Contains a surrogate
+    u8"This is \xED\xAF\xB5 surrogate!",
+    // Contains another invalid character
+    u8"This is \xEF\xBF\xBF invalid!"
 };
 
 TEST_CASE("Exceptions when browsing a utf8 string")
@@ -69,6 +84,8 @@ TEST_CASE("Exceptions when browsing a utf8 string")
     REQUIRE_NOTHROW(testing_strings[6].utf32_str());
     REQUIRE_THROWS_AS(testing_strings[7].utf32_str(), unicpp::bad_utf8_sequence_exception);
     REQUIRE_THROWS_AS(testing_strings[8].utf32_str(), unicpp::bad_utf8_sequence_exception);
+    REQUIRE_THROWS_AS(testing_strings[9].utf32_str(), unicpp::invalid_codepoint_exception);
+    REQUIRE_THROWS_AS(testing_strings[10].utf32_str(), unicpp::invalid_codepoint_exception);
 }
 
 TEST_CASE("string::is_valid")
@@ -82,4 +99,6 @@ TEST_CASE("string::is_valid")
     REQUIRE(testing_strings[6].is_valid() == true);
     REQUIRE(testing_strings[7].is_valid() == false);
     REQUIRE(testing_strings[8].is_valid() == false);
+    REQUIRE(testing_strings[9].is_valid() == false);
+    REQUIRE(testing_strings[10].is_valid() == false);
 }

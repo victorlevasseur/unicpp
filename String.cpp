@@ -29,6 +29,11 @@ string::string(std::size_t count, char32_t character)
     utf32_to_utf8(utf32str.begin(), utf32str.end(), std::back_inserter(m_content));
 }
 
+string::string(const std::u16string& utf16str)
+{
+    utf16_to_utf8(utf16str.begin(), utf16str.end(), std::back_inserter(m_content));
+}
+
 string::string(const std::u32string& utf32str)
 {
     utf32_to_utf8(utf32str.begin(), utf32str.end(), std::back_inserter(m_content));
@@ -54,6 +59,7 @@ std::wstring string::w_str()
 std::u16string string::utf16_str() const
 {
     std::u16string result;
+    utf8_to_utf16(m_content.begin(), m_content.end(), std::back_inserter(result));
 
     return result;
 }

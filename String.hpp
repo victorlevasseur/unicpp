@@ -16,6 +16,7 @@ public:
     string(const char* str, std::size_t size);
     string(std::size_t count, char32_t character);
     
+    string(const std::u16string& utf16str);
     string(const std::u32string& utf32str);
 
     std::string& std_str();
