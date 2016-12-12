@@ -137,6 +137,12 @@ void utf16_to_utf8(InputIterator begin, InputIterator end, OutputIterator output
     }
 }
 
+bool is_lead_octet(unsigned char octet);
+
+std::size_t get_lead_octet_sequence_length(unsigned char octet);
+
+bool is_trail_octet(unsigned char octet);
+
 template<typename InputIterator>
 int iterate_next_sequence(InputIterator & it, InputIterator end, unsigned char* output)
 {
@@ -148,23 +154,15 @@ int iterate_next_sequence(InputIterator & it, InputIterator end, unsigned char* 
     if(!is_valid_utf8_octet(first_codeunit))
         throw invalid_utf8_exception(std::to_string(first_codeunit) + " is not a valid UTF8 octet!");
 
-    std::size_t sequence_length;
-    if(first_codeunit <= 127) // This is a 1 byte sequence
-        sequence_length = 1;
-    else if((first_codeunit >> 5) == 0x6) // This is a 2 bytes sequence
-        sequence_length = 2;
-    else if((first_codeunit >> 4) == 0xE) // This is a 3 bytes sequence
-        sequence_length = 3;
-    else if((first_codeunit >> 3) == 0x1E) // This is a 4 bytes sequence
-        sequence_length = 4;
-    else
+    std::size_t sequence_length = get_lead_octet_sequence_length(first_codeunit);
+    if(sequence_length == 0)
         throw bad_utf8_sequence_exception("Bad head of sequence octet!");
 
     output[0] = first_codeunit;
     for(std::size_t i = 1; i < sequence_length; ++i)
     {
         ++it;
-        if(it == end || (static_cast<unsigned char>(*it) >> 6) != 0x2)
+        if(it == end || !is_trail_octet(*it))
             throw bad_utf8_sequence_exception("Not enough octets in a sequence: " + std::to_string(i) + " found but " + std::to_string(sequence_length) + " expected!");
         else if(!is_valid_utf8_octet(*it))
             throw invalid_utf8_exception(std::to_string(static_cast<unsigned char>(*it)) + " is not a valid UTF8 octet!");
@@ -204,6 +202,29 @@ char32_t iterate_next(InputIterator& it, InputIterator end)
         throw invalid_codepoint_exception("This is an invalid codepoint: " + std::to_string(codepoint));
 
     return codepoint;
+}
+
+template<typename InputIterator>
+void iterate_previous(InputIterator& it, InputIterator begin)
+{
+    if(it == begin)
+        throw bad_utf8_sequence_exception("Already at the beginning of the range!");
+
+    --it;
+    std::size_t measured_sequence_length = 1;
+    while(!is_lead_octet(*it) && it != begin)
+    {
+        if(!is_valid_utf8_octet(*it))
+            throw invalid_utf8_exception(std::to_string(static_cast<unsigned char>(*it)) + " is not a valid UTF8 octet!");
+        else if(!is_trail_octet(*it))
+            throw bad_utf8_sequence_exception("Found an octet that is not a lead or a trail octet!");
+        
+        ++measured_sequence_length;
+        --it;
+    }
+
+    if(!is_lead_octet(*it)) // It means we stopped because we reached the beginning without finding a lead octet
+        throw bad_utf8_sequence_exception("Can't find a lead octet until the beginning of the range!");
 }
 
 template<typename InputIterator, typename OutputIterator>

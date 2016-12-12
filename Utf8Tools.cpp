@@ -31,4 +31,28 @@ bool is_utf16_surrogate(char16_t codeunit)
     return is_utf16_lead_surrogate(codeunit) || is_utf16_trail_surrogate(codeunit);
 }
 
+bool is_lead_octet(unsigned char octet)
+{
+    return get_lead_octet_sequence_length(octet) != 0;
+}
+
+std::size_t get_lead_octet_sequence_length(unsigned char octet)
+{
+    if(octet <= 127) // This is a 1 byte sequence
+        return 1;
+    else if((octet >> 5) == 0x6) // This is a 2 bytes sequence
+        return 2;
+    else if((octet >> 4) == 0xE) // This is a 3 bytes sequence
+        return 3;
+    else if((octet >> 3) == 0x1E) // This is a 4 bytes sequence
+        return 4;
+    else
+        return 0;
+}
+
+bool is_trail_octet(unsigned char octet)
+{
+    return ((octet >> 6) == 0x2);
+}
+
 }

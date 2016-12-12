@@ -12,7 +12,7 @@ namespace unicpp
 class string;
 
 template<typename StringRef, typename InternalIterator>
-class string_iterator : public std::iterator<std::bidirectional_iterator_tag, char32_t>
+class string_iterator : public std::iterator<std::bidirectional_iterator_tag, char32_t, std::ptrdiff_t, char32_t*, char32_t>
 {
     friend class string;
 public:
@@ -50,6 +50,19 @@ public:
         return tmp;
     }
 
+    iterator_type& operator--()
+    {
+        iterate_previous(internal_it, internal_string.begin());
+        return *this;
+    }
+
+    iterator_type operator--(int)
+    {
+        iterator_type tmp(*this);
+        iterate_previous(internal_it, internal_string.begin());
+        return tmp;
+    }
+
     bool operator==(const iterator_type& rhs)
     {
         return internal_it == rhs.internal_it;
@@ -77,6 +90,9 @@ public:
     using iterator = string_iterator<std::string&, std::string::iterator>;
     using const_iterator = string_iterator<const std::string&, std::string::const_iterator>;
 
+    using reverse_iterator = std::reverse_iterator<string::iterator>;
+    using const_reverse_iterator = std::reverse_iterator<string::const_iterator>;
+
     string();
     string(const char* str);
     string(const char* str, std::size_t size);
@@ -96,11 +112,17 @@ public:
 
     const_iterator begin() const;
     const_iterator cbegin() const;
+    const_reverse_iterator rbegin() const;
+    const_reverse_iterator crbegin() const;
     iterator begin();
+    reverse_iterator rbegin();
 
     const_iterator end() const;
     const_iterator cend() const;
+    const_reverse_iterator rend() const;
+    const_reverse_iterator crend() const;
     iterator end();
+    reverse_iterator rend();
 
 private:
     std::string m_content;

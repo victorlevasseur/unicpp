@@ -87,9 +87,24 @@ string::const_iterator string::cbegin() const
     return const_iterator(m_content, m_content.begin());
 }
 
+string::const_reverse_iterator string::rbegin() const
+{
+    return std::reverse_iterator<string::const_iterator>(begin());
+}
+
+string::const_reverse_iterator string::crbegin() const
+{
+    return std::reverse_iterator<string::const_iterator>(cbegin());
+}
+
 string::iterator string::begin()
 {
     return iterator(m_content, m_content.begin());
+}
+
+string::reverse_iterator string::rbegin()
+{
+    return std::reverse_iterator<string::iterator>(begin());
 }
 
 string::const_iterator string::end() const
@@ -102,9 +117,24 @@ string::const_iterator string::cend() const
     return const_iterator(m_content, m_content.end());
 }
 
+string::const_reverse_iterator string::rend() const
+{
+    return std::reverse_iterator<string::const_iterator>(end());
+}
+
+string::const_reverse_iterator string::crend() const
+{
+    return std::reverse_iterator<string::const_iterator>(cend());
+}
+
 string::iterator string::end()
 {
     return iterator(m_content, m_content.end());
+}
+
+string::reverse_iterator string::rend()
+{
+    return std::reverse_iterator<string::iterator>(end());
 }
 
 }

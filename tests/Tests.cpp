@@ -105,6 +105,7 @@ TEST_CASE("string::is_valid")
 
 TEST_CASE("string_iterator")
 {
+    // Forward iterating
     unicpp::string utf8str(u"Elegant, 时尚, élégant, 🞊");
     std::u32string result;
 
@@ -114,4 +115,14 @@ TEST_CASE("string_iterator")
     }
 
     REQUIRE(result == U"Elegant, 时尚, élégant, 🞊");
+
+    // Backward iterating
+    std::u32string result2;
+
+    for(auto it = utf8str.crend(); it != utf8str.rbegin(); ++it)
+    {
+        result2.insert(result2.begin(), *it);
+    }
+
+    REQUIRE(result2 == U"Elegant, 时尚, élégant, 🞊");
 }
