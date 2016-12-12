@@ -77,4 +77,34 @@ bool string::is_valid() const
     return is_valid_utf8(m_content.begin(), m_content.end());
 }
 
+string::const_iterator string::begin() const
+{
+    return const_iterator(m_content, m_content.begin());
+}
+
+string::const_iterator string::cbegin() const
+{
+    return const_iterator(m_content, m_content.begin());
+}
+
+string::iterator string::begin()
+{
+    return iterator(m_content, m_content.begin());
+}
+
+string::const_iterator string::end() const
+{
+    return const_iterator(m_content, m_content.end());
+}
+
+string::const_iterator string::cend() const
+{
+    return const_iterator(m_content, m_content.end());
+}
+
+string::iterator string::end()
+{
+    return iterator(m_content, m_content.end());
+}
+
 }

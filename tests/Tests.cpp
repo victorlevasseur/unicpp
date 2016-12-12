@@ -102,3 +102,16 @@ TEST_CASE("string::is_valid")
     REQUIRE(testing_strings[9].is_valid() == false);
     REQUIRE(testing_strings[10].is_valid() == false);
 }
+
+TEST_CASE("string_iterator")
+{
+    unicpp::string utf8str(u"Elegant, 时尚, élégant, 🞊");
+    std::u32string result;
+
+    for(auto it = utf8str.cbegin(); it != utf8str.end(); ++it)
+    {
+        result.push_back(*it);
+    }
+
+    REQUIRE(result == U"Elegant, 时尚, élégant, 🞊");
+}

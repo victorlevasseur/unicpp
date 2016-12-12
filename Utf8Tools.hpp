@@ -206,12 +206,6 @@ char32_t iterate_next(InputIterator& it, InputIterator end)
     return codepoint;
 }
 
-template<typename InputIterator>
-char32_t get_next(InputIterator it, InputIterator end)
-{
-    return iterate_next(it, end);
-}
-
 template<typename InputIterator, typename OutputIterator>
 void utf8_to_utf32(InputIterator begin, InputIterator end, OutputIterator output)
 {
