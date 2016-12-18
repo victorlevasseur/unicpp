@@ -52,7 +52,7 @@ unicpp::string testing_strings[] = {
     u8"This contains an \xC0\x11 character",
     // Contains an invalid octet in a "character"
     u8"This contains an \xC1\xC0 character",
-    // Contains an invalid sequence lead character 
+    // Contains an invalid sequence lead character
     // (not 0xxxxxxx, 110xxxxx, 1110xxxx or 11110xxx)
     u8"This contains an \xFC\x11 character",
     // Contains lead character of 10xxxxxx (which should
@@ -103,7 +103,7 @@ TEST_CASE("string::is_valid")
     REQUIRE(testing_strings[10].is_valid() == false);
 }
 
-TEST_CASE("string_iterator")
+TEST_CASE("codepoint_iterator")
 {
     // Forward iterating
     unicpp::string utf8str(u"Elegant, 时尚, élégant, 🞊");
@@ -125,4 +125,48 @@ TEST_CASE("string_iterator")
     }
 
     REQUIRE(result2 == U"Elegant, 时尚, élégant, 🞊");
+}
+
+TEST_CASE("grapheme_iterator")
+{
+    // Forward iterating with graphemes in a string without multi codepoint graphemes
+    unicpp::string utf8str(u"Elegant, 时尚, élégant, 🞊");
+
+    std::u32string result;
+
+    for(auto it = utf8str.gbegin(); it != utf8str.gend(); ++it)
+    {
+        result.push_back((*it)[0]);
+    }
+
+    REQUIRE(result == U"Elegant, 时尚, élégant, 🞊");
+
+    unicpp::string multicodepointsstr("1\145\314\201;\101\314\212");
+
+    REQUIRE(std::distance(multicodepointsstr.begin(), multicodepointsstr.end()) == 6);
+    REQUIRE(std::distance(multicodepointsstr.gbegin(), multicodepointsstr.gend()) == 4);
+
+    auto git = multicodepointsstr.gbegin();
+    REQUIRE((*git).size() == 1);
+    REQUIRE((*git)[0] == U'1');
+
+    ++git;
+    REQUIRE((*git).size() == 2);
+    REQUIRE((*git)[0] == U'e');
+    REQUIRE((*git)[1] == 0x0301);
+
+    ++git;
+    REQUIRE((*git).size() == 1);
+    REQUIRE((*git)[0] == U';');
+
+    ++git;
+    REQUIRE((*git).size() == 2);
+    REQUIRE((*git)[0] == U'A');
+    REQUIRE((*git)[1] == 0x030A);
+}
+
+TEST_CASE("string::size")
+{
+    unicpp::string utf8str(u8"Elegant, 时尚, élégant, 🞊");
+    REQUIRE(utf8str.size() == 23);
 }

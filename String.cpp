@@ -14,13 +14,13 @@ string::string() :
 string::string(const char* str) :
     m_content(str)
 {
-    
+
 }
 
-string::string(const char* str, size_t size) : 
+string::string(const char* str, size_t size) :
     m_content(str, size)
 {
-    
+
 }
 
 string::string(std::size_t count, char32_t character)
@@ -135,6 +135,21 @@ string::iterator string::end()
 string::reverse_iterator string::rend()
 {
     return std::reverse_iterator<string::iterator>(end());
+}
+
+string::const_grapheme_iterator string::gbegin() const
+{
+    return const_grapheme_iterator(*this, cbegin());
+}
+
+string::const_grapheme_iterator string::gend() const
+{
+    return const_grapheme_iterator(*this, cend());
+}
+
+std::size_t string::size() const
+{
+    return std::distance(cbegin(), cend());
 }
 
 }

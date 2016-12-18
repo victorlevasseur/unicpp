@@ -4,6 +4,8 @@
 #include <iterator>
 #include <string>
 
+#include "utf8proc/utf8proc.h"
+
 #include "Utf8Tools.hpp"
 
 namespace unicpp
@@ -12,16 +14,17 @@ namespace unicpp
 class string;
 
 template<typename StringRef, typename InternalIterator>
-class string_iterator : public std::iterator<std::bidirectional_iterator_tag, char32_t, std::ptrdiff_t, char32_t*, char32_t>
+class codepoint_iterator : public std::iterator<std::bidirectional_iterator_tag, char32_t, std::ptrdiff_t, char32_t*, char32_t>
 {
     friend class string;
-public:
-    using iterator_type = string_iterator<StringRef, InternalIterator>;
 
-    string_iterator() {}
+public:
+    using iterator_type = codepoint_iterator<StringRef, InternalIterator>;
+
+    codepoint_iterator() {}
 
 private:
-    string_iterator(StringRef str, InternalIterator it) : 
+    codepoint_iterator(StringRef str, InternalIterator it) :
         internal_string(str),
         internal_it(it)
     {
@@ -30,7 +33,7 @@ private:
 
 public:
     template<typename S, typename I>
-    string_iterator(const string_iterator<S, I>& other) :
+    codepoint_iterator(const codepoint_iterator<S, I>& other) :
         internal_string(other.internal_string),
         internal_it(other.internal_it)
     {
@@ -67,7 +70,7 @@ public:
     {
         return internal_it == rhs.internal_it;
     }
-    
+
     bool operator!=(const iterator_type& rhs)
     {
         return internal_it != rhs.internal_it;
@@ -83,21 +86,134 @@ public:
     InternalIterator internal_it;
 };
 
+template<typename StringRef, typename CodepointIterator>
+class grapheme_iterator : public std::iterator<std::forward_iterator_tag, std::u32string, std::ptrdiff_t, std::u32string*, std::u32string>
+{
+    friend class string;
+
+public:
+    using iterator_type = grapheme_iterator<StringRef, CodepointIterator>;
+
+    grapheme_iterator() : state(0) {}
+
+private:
+    grapheme_iterator(StringRef str, CodepointIterator it) :
+        internal_string(str),
+        codepoint_it(it),
+        state(0)
+    {
+
+    }
+
+public:
+    template<typename S, typename I>
+    grapheme_iterator(const grapheme_iterator<S, I>& other) :
+        internal_string(other.internal_string),
+        codepoint_it(other.codepoint_it),
+        state(other.state)
+    {
+
+    }
+
+    iterator_type& operator++()
+    {
+        char32_t codepoint = *codepoint_it;
+        ++codepoint_it;
+
+        if(codepoint_it == internal_string.cend())
+            return *this;
+
+        char32_t next_codepoint = *codepoint_it;
+        bool has_entered_loop = false;
+        while(!utf8proc_grapheme_break_stateful(codepoint, next_codepoint, &state))
+        {
+            has_entered_loop = true;
+            codepoint = next_codepoint;
+
+            ++codepoint_it;
+            if(codepoint_it == internal_string.cend())
+                break;
+
+            next_codepoint = *codepoint_it;
+        }
+
+        return *this;
+    }
+
+    iterator_type operator++(int)
+    {
+        iterator_type tmp(*this);
+        operator++();
+        return tmp;
+    }
+
+    bool operator==(const iterator_type& rhs)
+    {
+        return codepoint_it == rhs.codepoint_it;
+    }
+
+    bool operator!=(const iterator_type& rhs)
+    {
+        return codepoint_it != rhs.codepoint_it;
+    }
+
+    std::u32string operator*()
+    {
+        auto tmp = CodepointIterator(codepoint_it);
+
+        char32_t codepoint = *tmp;
+        ++tmp;
+
+        std::u32string grapheme{codepoint};
+
+        if(tmp == internal_string.cend())
+            return grapheme;
+
+        char32_t next_codepoint = *tmp;
+        while(!utf8proc_grapheme_break_stateful(codepoint, next_codepoint, nullptr))
+        {
+            codepoint = next_codepoint;
+            grapheme.push_back(codepoint);
+
+            ++tmp;
+            if(tmp == internal_string.cend())
+                break;
+
+            next_codepoint = *tmp;
+        }
+
+        return grapheme;
+    }
+
+    StringRef internal_string;
+    CodepointIterator codepoint_it;
+    utf8proc_int32_t state;
+};
+
+class as_codepoints
+{
+public:
+    using unit = std::size_t;
+    using iterator =
+};
+
 class string
 {
-public: 
+public:
 
-    using iterator = string_iterator<std::string&, std::string::iterator>;
-    using const_iterator = string_iterator<const std::string&, std::string::const_iterator>;
+    using iterator = codepoint_iterator<std::string&, std::string::iterator>;
+    using const_iterator = codepoint_iterator<const std::string&, std::string::const_iterator>;
 
     using reverse_iterator = std::reverse_iterator<string::iterator>;
     using const_reverse_iterator = std::reverse_iterator<string::const_iterator>;
+
+    using const_grapheme_iterator = grapheme_iterator<const string&, const_iterator>;
 
     string();
     string(const char* str);
     string(const char* str, std::size_t size);
     string(std::size_t count, char32_t character);
-    
+
     string(const std::u16string& utf16str);
     string(const std::u32string& utf32str);
 
@@ -123,6 +239,11 @@ public:
     const_reverse_iterator crend() const;
     iterator end();
     reverse_iterator rend();
+
+    const_grapheme_iterator gbegin() const;
+    const_grapheme_iterator gend() const;
+
+    std::size_t size() const;
 
 private:
     std::string m_content;
