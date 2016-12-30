@@ -28,7 +28,7 @@ bool is_valid_codepoint(char32_t codepoint);
     * *(OutputIterator) must accept a char assignment.
     */
 template<typename OutputIterator>
-void codepoint_to_utf8(char32_t codepoint, OutputIterator output)
+void codepoint_to_utf8(char32_t codepoint, OutputIterator & output)
 {
     if(!is_valid_codepoint(codepoint))
         throw invalid_codepoint_exception("This codepoint is invalid: " + std::to_string(codepoint));
@@ -38,15 +38,15 @@ void codepoint_to_utf8(char32_t codepoint, OutputIterator output)
         // Between 00000000 00000000 00000000 00000000 and 00000000 00000000 00000000 01111111
         // Will be encoded to 0xxxxxxx (1 byte) with 
         // all the 'x' been the 7 less sign. bits in the same order
-        output++ = codepoint & 0x7F;
+        *(output++) = codepoint & 0x7F;
     }
     else if(codepoint <= 0x000007FF)
     {
         // Between 00000000 00000000 00000000 10000000 and 00000000 00000000 00000111 11111111
         // Will be encoded to 110xxxxx 10xxxxxx (2 bytes) with 
         // all the 'x' been the 11 less sign. bits in the same order
-        output++ = 0xC0 | (codepoint >> 6) & 0x1F;
-        output++ = 0x80 | codepoint & 0x3F;
+        *(output++) = 0xC0 | (codepoint >> 6) & 0x1F;
+        *(output++) = 0x80 | codepoint & 0x3F;
     }
     else if(codepoint <= 0x0000FFFF)
     {
@@ -54,9 +54,9 @@ void codepoint_to_utf8(char32_t codepoint, OutputIterator output)
         // Will be encoded to 1110xxxx 10xxxxxx 10xxxxxx (3 bytes) with 
         // all the 'x' been the 11 less sign. bits in the same order
 
-        output++ = 0xE0 | (codepoint >> 12) & 0xF;
-        output++ = 0x80 | (codepoint >> 6) & 0x3F;
-        output++ = 0x80 | codepoint & 0x3F;
+        *(output++) = 0xE0 | (codepoint >> 12) & 0xF;
+        *(output++) = 0x80 | (codepoint >> 6) & 0x3F;
+        *(output++) = 0x80 | codepoint & 0x3F;
     }
     else if(codepoint <= 0x0010FFFF)
     {
@@ -64,10 +64,10 @@ void codepoint_to_utf8(char32_t codepoint, OutputIterator output)
         // Will be encoded to 1110xxxx 10xxxxxx 10xxxxxx (3 bytes) with 
         // all the 'x' been the 11 less sign. bits in the same order
 
-        output++ = 0xF0 | (codepoint >> 18) & 0x7;
-        output++ = 0x80 | (codepoint >> 12) & 0x3F;
-        output++ = 0x80 | (codepoint >> 6) & 0x3F;
-        output++ = 0x80 | codepoint & 0x3F;
+        *(output++) = 0xF0 | (codepoint >> 18) & 0x7;
+        *(output++) = 0x80 | (codepoint >> 12) & 0x3F;
+        *(output++) = 0x80 | (codepoint >> 6) & 0x3F;
+        *(output++) = 0x80 | codepoint & 0x3F;
     }
     else
     {
@@ -99,7 +99,7 @@ bool is_utf16_trail_surrogate(char16_t codeunit);
 bool is_utf16_surrogate(char16_t codeunit);
 
 template<typename InputIterator, typename OutputIterator>
-void utf16_character_to_utf8(InputIterator & it, InputIterator end, OutputIterator output)
+void utf16_character_to_utf8(InputIterator & it, InputIterator end, OutputIterator & output)
 {
     if(it == end)
         throw bad_utf16_sequence_exception("Already at the end of the range!");
@@ -144,7 +144,7 @@ std::size_t get_lead_octet_sequence_length(unsigned char octet);
 bool is_trail_octet(unsigned char octet);
 
 template<typename InputIterator>
-int iterate_next_sequence(InputIterator & it, InputIterator end, unsigned char* output)
+int iterate_next_sequence(InputIterator & it, InputIterator end, unsigned char * output)
 {
     if(it == end)
         throw bad_utf8_sequence_exception("Already at the end of the range!");
@@ -176,7 +176,7 @@ int iterate_next_sequence(InputIterator & it, InputIterator end, unsigned char* 
 }
 
 template<typename InputIterator>
-char32_t iterate_next(InputIterator& it, InputIterator end)
+char32_t iterate_next(InputIterator & it, InputIterator end)
 {
     unsigned char buffer[4];
     std::size_t sequence_length = iterate_next_sequence(it, end, buffer);
@@ -205,7 +205,7 @@ char32_t iterate_next(InputIterator& it, InputIterator end)
 }
 
 template<typename InputIterator>
-void iterate_previous(InputIterator& it, InputIterator begin)
+void iterate_previous(InputIterator & it, InputIterator begin)
 {
     if(it == begin)
         throw bad_utf8_sequence_exception("Already at the beginning of the range!");
@@ -232,27 +232,27 @@ void utf8_to_utf32(InputIterator begin, InputIterator end, OutputIterator output
 {
     for(auto it = begin; it != end; )
     {
-        output++ = iterate_next(it, end);
+        *(output++) = iterate_next(it, end);
     }
 }
 
 template<typename OutputIterator>
-void codepoint_to_utf16(char32_t codepoint, OutputIterator output)
+void codepoint_to_utf16(char32_t codepoint, OutputIterator & output)
 {
     if(codepoint < 0x10000)
     {
-        output++ = static_cast<char16_t>(codepoint);
+        *(output++) = static_cast<char16_t>(codepoint);
     }
     else
     {
         char32_t u = codepoint - 0x10000;
-        output++ = 0xD800 | (static_cast<char16_t>(u >> 10) & 0x3FF);
-        output++ = 0xDC00 | (static_cast<char16_t>(u) & 0x3FF);
+        *(output++) = 0xD800 | (static_cast<char16_t>(u >> 10) & 0x3FF);
+        *(output++) = 0xDC00 | (static_cast<char16_t>(u) & 0x3FF);
     }
 }
 
 template<typename InputIterator, typename OutputIterator>
-void utf8_to_utf16(InputIterator begin, InputIterator end, OutputIterator output)
+void utf8_to_utf16(InputIterator begin, InputIterator end, OutputIterator & output)
 {
     for(auto it = begin; it != end; )
     {
