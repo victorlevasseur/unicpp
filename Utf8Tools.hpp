@@ -28,7 +28,7 @@ bool is_valid_codepoint(char32_t codepoint);
     * *(OutputIterator) must accept a char assignment.
     */
 template<typename OutputIterator>
-void codepoint_to_utf8(char32_t codepoint, OutputIterator output)
+OutputIterator codepoint_to_utf8(char32_t codepoint, OutputIterator output)
 {
     if(!is_valid_codepoint(codepoint))
         throw invalid_codepoint_exception("This codepoint is invalid: " + std::to_string(codepoint));
@@ -74,6 +74,8 @@ void codepoint_to_utf8(char32_t codepoint, OutputIterator output)
         // Don't know how to encode this.
         throw invalid_codepoint_exception("Can't encode this codepoint: " + std::to_string(static_cast<uint32_t>(codepoint)));
     }
+
+    return output;
 }
 
 /**
@@ -84,12 +86,14 @@ void codepoint_to_utf8(char32_t codepoint, OutputIterator output)
     * *(OutputIterator) must accept a char assignment.
     */
 template<typename InputIterator, typename OutputIterator>
-void utf32_to_utf8(InputIterator begin, InputIterator end, OutputIterator output)
+OutputIterator utf32_to_utf8(InputIterator begin, InputIterator end, OutputIterator output)
 {
     for(auto it = begin; it != end; ++it)
     {
-        codepoint_to_utf8<OutputIterator>(*it, output);
+        output = codepoint_to_utf8<OutputIterator>(*it, output);
     }
+
+    return output;
 }
 
 bool is_utf16_lead_surrogate(char16_t codeunit);
@@ -99,7 +103,7 @@ bool is_utf16_trail_surrogate(char16_t codeunit);
 bool is_utf16_surrogate(char16_t codeunit);
 
 template<typename InputIterator, typename OutputIterator>
-void utf16_character_to_utf8(InputIterator & it, InputIterator end, OutputIterator output)
+OutputIterator utf16_character_to_utf8(InputIterator & it, InputIterator end, OutputIterator output)
 {
     if(it == end)
         throw bad_utf16_sequence_exception("Already at the end of the range!");
@@ -119,22 +123,26 @@ void utf16_character_to_utf8(InputIterator & it, InputIterator end, OutputIterat
             throw bad_utf16_sequence_exception("Found a character that is not a surrogate after a lead surrogate!");
 
         char32_t codepoint = ((static_cast<char32_t>(codeunit & 0x3FF) << 10) | trail & 0x3FF) + 0x10000;
-        codepoint_to_utf8(codepoint, output);
+        output = codepoint_to_utf8(codepoint, output);
     }
     else
     {
         char32_t codepoint = static_cast<char32_t>(codeunit);
-        codepoint_to_utf8(codepoint, output);
+        output = codepoint_to_utf8(codepoint, output);
     }
+
+    return output;
 }
 
 template<typename InputIterator, typename OutputIterator>
-void utf16_to_utf8(InputIterator begin, InputIterator end, OutputIterator output)
+OutputIterator utf16_to_utf8(InputIterator begin, InputIterator end, OutputIterator output)
 {
     for(auto it = begin; it != end; )
     {
-        utf16_character_to_utf8<InputIterator, OutputIterator>(it, end, output);
+        output = utf16_character_to_utf8<InputIterator, OutputIterator>(it, end, output);
     }
+
+    return output;
 }
 
 bool is_lead_octet(unsigned char octet);
@@ -228,16 +236,18 @@ void iterate_previous(InputIterator & it, InputIterator begin)
 }
 
 template<typename InputIterator, typename OutputIterator>
-void utf8_to_utf32(InputIterator begin, InputIterator end, OutputIterator output)
+OutputIterator utf8_to_utf32(InputIterator begin, InputIterator end, OutputIterator output)
 {
     for(auto it = begin; it != end; )
     {
         *(output++) = iterate_next(it, end);
     }
+
+    return output;
 }
 
 template<typename OutputIterator>
-void codepoint_to_utf16(char32_t codepoint, OutputIterator output)
+OutputIterator codepoint_to_utf16(char32_t codepoint, OutputIterator output)
 {
     if(codepoint < 0x10000)
     {
@@ -249,16 +259,20 @@ void codepoint_to_utf16(char32_t codepoint, OutputIterator output)
         *(output++) = 0xD800 | (static_cast<char16_t>(u >> 10) & 0x3FF);
         *(output++) = 0xDC00 | (static_cast<char16_t>(u) & 0x3FF);
     }
+
+    return output;
 }
 
 template<typename InputIterator, typename OutputIterator>
-void utf8_to_utf16(InputIterator begin, InputIterator end, OutputIterator output)
+OutputIterator utf8_to_utf16(InputIterator begin, InputIterator end, OutputIterator output)
 {
     for(auto it = begin; it != end; )
     {
         char32_t codepoint = iterate_next(it, end);
-        codepoint_to_utf16(codepoint, output);
+        output = codepoint_to_utf16(codepoint, output);
     }
+
+    return output;
 }
 
 template<typename InputIterator>
