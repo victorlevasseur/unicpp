@@ -193,8 +193,35 @@ public:
 class as_codepoints
 {
 public:
-    using unit = std::size_t;
-    using iterator =
+    using offset_type = std::size_t;
+    using const_iterator = codepoint_iterator<const std::string&, std::string::const_iterator>;
+
+    static const_iterator cbegin(const string & str);
+
+    static const_iterator cend(const string & str);
+
+    static bool advance_safe(const string & str, const_iterator & it, offset_type offset);
+
+    static offset_type get_byte_distance(const string & str, const const_iterator & b, const const_iterator & it);
+
+    static offset_type get_codepoint_distance(const string & str, const const_iterator & b, const const_iterator & it);
+};
+
+class as_graphemes
+{
+public:
+    using offset_type = std::size_t;
+    using const_iterator = grapheme_iterator<const string&, codepoint_iterator<const std::string&, std::string::const_iterator>>;
+
+    static const_iterator cbegin(const string & str);
+
+    static const_iterator cend(const string & str);
+
+    static bool advance_safe(const string & str, const_iterator & it, offset_type offset);
+
+    static offset_type get_byte_distance(const string & str, const const_iterator & b, const const_iterator & it);
+
+    static offset_type get_codepoint_distance(const string & str, const const_iterator & b, const const_iterator & it);
 };
 
 class string
@@ -243,7 +270,11 @@ public:
     const_grapheme_iterator gbegin() const;
     const_grapheme_iterator gend() const;
 
-    std::size_t size() const;
+    template<typename Unit = as_codepoints>
+    std::size_t size() const
+    {
+        return std::distance(Unit::cbegin(*this), Unit::cend(*this));
+    }
 
 private:
     std::string m_content;

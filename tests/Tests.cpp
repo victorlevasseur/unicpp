@@ -169,4 +169,8 @@ TEST_CASE("string::size")
 {
     unicpp::string utf8str(u8"Elegant, 时尚, élégant, 🞊");
     REQUIRE(utf8str.size() == 23);
+
+    unicpp::string graphemeStr("\145\314\201g");
+    REQUIRE(graphemeStr.size() == 3);
+    REQUIRE(graphemeStr.size<unicpp::as_graphemes>() == 2);
 }
