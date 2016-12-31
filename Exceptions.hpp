@@ -8,30 +8,37 @@ namespace unicpp
 
 class invalid_utf8_exception : public std::runtime_error
 {
-public: 
+public:
     explicit invalid_utf8_exception (const std::string& what_arg) : std::runtime_error(what_arg) {}
     explicit invalid_utf8_exception (const char* what_arg) : std::runtime_error(what_arg) {}
 };
 
 class bad_utf8_sequence_exception : public std::runtime_error
 {
-public: 
+public:
     explicit bad_utf8_sequence_exception (const std::string& what_arg) : std::runtime_error(what_arg) {}
     explicit bad_utf8_sequence_exception (const char* what_arg) : std::runtime_error(what_arg) {}
 };
 
 class bad_utf16_sequence_exception : public std::runtime_error
 {
-public: 
+public:
     explicit bad_utf16_sequence_exception (const std::string& what_arg) : std::runtime_error(what_arg) {}
     explicit bad_utf16_sequence_exception (const char* what_arg) : std::runtime_error(what_arg) {}
 };
 
 class invalid_codepoint_exception : public std::runtime_error
 {
-public: 
+public:
     explicit invalid_codepoint_exception (const std::string& what_arg) : std::runtime_error(what_arg) {}
     explicit invalid_codepoint_exception (const char* what_arg) : std::runtime_error(what_arg) {}
+};
+
+class invalid_grapheme_exception : public std::runtime_error
+{
+public:
+    explicit invalid_grapheme_exception (const std::string& what_arg) : std::runtime_error(what_arg) {}
+    explicit invalid_grapheme_exception (const char* what_arg) : std::runtime_error(what_arg) {}
 };
 
 }

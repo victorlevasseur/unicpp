@@ -6,6 +6,7 @@
 
 #include "utf8proc/utf8proc.h"
 
+#include "Grapheme.hpp"
 #include "Utf8Tools.hpp"
 
 namespace unicpp
@@ -87,7 +88,7 @@ public:
 };
 
 template<typename StringRef, typename CodepointIterator>
-class grapheme_iterator : public std::iterator<std::forward_iterator_tag, std::u32string, std::ptrdiff_t, std::u32string*, std::u32string>
+class grapheme_iterator : public std::iterator<std::forward_iterator_tag, grapheme, std::ptrdiff_t, grapheme, grapheme>
 {
     friend class string;
 
@@ -157,23 +158,23 @@ public:
         return codepoint_it != rhs.codepoint_it;
     }
 
-    std::u32string operator*()
+    grapheme operator*()
     {
         auto tmp = CodepointIterator(codepoint_it);
 
         char32_t codepoint = *tmp;
         ++tmp;
 
-        std::u32string grapheme{codepoint};
+        std::u32string grapheme_str{codepoint};
 
         if(tmp == internal_string.cend())
-            return grapheme;
+            return grapheme(grapheme_str, false);
 
         char32_t next_codepoint = *tmp;
-        while(!utf8proc_grapheme_break_stateful(codepoint, next_codepoint, nullptr))
+        while(!utf8proc_grapheme_break_stateful(codepoint, next_codepoint, &state))
         {
             codepoint = next_codepoint;
-            grapheme.push_back(codepoint);
+            grapheme_str.push_back(codepoint);
 
             ++tmp;
             if(tmp == internal_string.cend())
@@ -182,7 +183,7 @@ public:
             next_codepoint = *tmp;
         }
 
-        return grapheme;
+        return grapheme(grapheme_str, false);
     }
 
     StringRef internal_string;

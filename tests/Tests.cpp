@@ -147,20 +147,20 @@ TEST_CASE("grapheme_iterator")
     REQUIRE(std::distance(multicodepointsstr.gbegin(), multicodepointsstr.gend()) == 4);
 
     auto git = multicodepointsstr.gbegin();
-    REQUIRE((*git).size() == 1);
+    REQUIRE((*git).codepoints_count() == 1);
     REQUIRE((*git)[0] == U'1');
 
     ++git;
-    REQUIRE((*git).size() == 2);
+    REQUIRE((*git).codepoints_count() == 2);
     REQUIRE((*git)[0] == U'e');
     REQUIRE((*git)[1] == 0x0301);
 
     ++git;
-    REQUIRE((*git).size() == 1);
+    REQUIRE((*git).codepoints_count() == 1);
     REQUIRE((*git)[0] == U';');
 
     ++git;
-    REQUIRE((*git).size() == 2);
+    REQUIRE((*git).codepoints_count() == 2);
     REQUIRE((*git)[0] == U'A');
     REQUIRE((*git)[1] == 0x030A);
 }
